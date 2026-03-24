@@ -1,0 +1,8 @@
+add_subdirectory(LPP)
+add_subdirectory(ocp-gtpu)
+add_subdirectory(M3AP)
+add_subdirectory(S1AP)
+add_subdirectory(NAS)
+add_subdirectory(NGAP)
+add_subdirectory(NRPPA)
+add_subdirectory(UICC)

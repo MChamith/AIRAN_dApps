@@ -1,0 +1,61 @@
+/*
+ * Licensed to the OpenAirInterface (OAI) Software Alliance under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The OpenAirInterface Software Alliance licenses this file to You under
+ * the OAI Public License, Version 1.1  (the "License"); you may not use this file
+ * except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.openairinterface.org/?page_id=698
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *-------------------------------------------------------------------------------
+ * For more information about the OpenAirInterface (OAI) Software Alliance:
+ *      contact@openairinterface.org
+ */
+
+#pragma once
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct {
+  int want_model_id; // 0..4 for TDL-A..E, or -1 for any
+  int want_tx; // exact match
+  int want_rx; // exact match
+  float want_ds_ns; // nearest
+  float want_speed_mps; // nearest
+  int allow_shape_swap; // allow TX/RX swap when matching
+  float w_ds; // DS distance weight
+  float w_speed; // speed distance weight
+  const char *yaml_path; // sidecar path
+} cirdb_select_req_t;
+
+typedef struct {
+  int model_id;
+  int n_tx;
+  int n_rx;
+  int L; // taps per link in file
+  int S; // snapshots
+  double fs_hz;
+  double snapshot_dt_s;
+  float ds_ns;
+  float speed_mps;
+  int pair_order;
+  uint64_t offset_bytes;
+  uint64_t nbytes;
+} cirdb_entry_meta_t;
+
+int cirdb_yaml_select(const cirdb_select_req_t *req, cirdb_entry_meta_t *out);
+int cirdb_yaml_scan(const char *yaml_path);
+
+#ifdef __cplusplus
+}
+#endif

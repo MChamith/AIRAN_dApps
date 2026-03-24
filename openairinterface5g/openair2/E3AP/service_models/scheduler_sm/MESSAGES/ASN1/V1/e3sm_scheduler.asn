@@ -1,0 +1,43 @@
+-- ASN.1 module for E3 Scheduler Service Model
+-- Defines messages for dynamic scheduling policy control
+
+E3SM-Scheduler-IEs DEFINITIONS AUTOMATIC TAGS ::=
+
+BEGIN
+
+-- Policy enumeration: 0 = Round Robin, 1 = Proportional Fair
+SchedulerPolicy ::= INTEGER (0..255)
+
+-- Per-UE scheduler statistics
+UESchedulerStats ::= SEQUENCE {
+    rnti                INTEGER (0..65535),
+    avgThroughput       INTEGER (0..4294967295),  -- bps
+    bler                INTEGER (0..10000),        -- scaled by 100, e.g., 1234 = 12.34%
+    currentMCS          INTEGER (0..31),
+    pendingBytes        INTEGER (0..4294967295),
+    isRetx              BOOLEAN,
+    rbsAllocated        INTEGER (0..275),
+    beamIndex           INTEGER (0..65535),
+    ...
+}
+
+-- Scheduler Policy Indication Message
+-- Sent from RAN to dApp to report current scheduler state and per-UE statistics
+SchedulerPolicyIndication ::= SEQUENCE {
+    currentPolicy       SchedulerPolicy,
+    frameNumber         INTEGER (0..1023),
+    slotNumber          INTEGER (0..319),
+    numUEs              INTEGER (0..255),
+    ueStats             SEQUENCE (SIZE(0..255)) OF UESchedulerStats,
+    ...
+}
+
+-- Scheduler Policy Control Message
+-- Sent from dApp to RAN to change scheduling policy
+SchedulerPolicyControl ::= SEQUENCE {
+    requestedPolicy     SchedulerPolicy,
+    samplingThreshold   INTEGER (1..10000) OPTIONAL,  -- Control reporting frequency
+    ...
+}
+
+END

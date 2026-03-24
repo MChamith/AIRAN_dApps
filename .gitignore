@@ -1,0 +1,53 @@
+# Top-level .gitignore for parent repository
+# Note: Both dApp-library/ and openairinterface5g/ have their own .gitignore files
+#       that handle their specific build artifacts and generated files
+
+# ============================================================================
+# Specific directories that exist and should be ignored
+# ============================================================================
+
+# Python Virtual Environment in dApp-library (confirmed to exist)
+dApp-library/dappenv/
+
+# Python distribution build in dApp-library (confirmed to exist)
+dApp-library/dist/
+
+# ============================================================================
+# General patterns for top-level workspace
+# ============================================================================
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Tags (vim/ctags/global)
+tags
+TAGS
+GPATH
+GRTAGS
+GTAGS
+
+# Environment files
+.env

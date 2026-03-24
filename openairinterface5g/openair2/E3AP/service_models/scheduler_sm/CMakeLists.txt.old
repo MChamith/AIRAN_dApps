@@ -1,0 +1,31 @@
+# CMakeLists.txt for E3 Scheduler Service Model
+
+cmake_minimum_required(VERSION 3.10)
+
+# Include ASN.1 message compilation
+include(${CMAKE_CURRENT_SOURCE_DIR}/MESSAGES/ASN1/V1/e3sm_scheduler.cmake)
+
+# Scheduler SM source files
+set(SCHEDULER_SM_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/scheduler_sm.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/scheduler_enc.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/scheduler_dec.c
+)
+
+# Create scheduler SM library
+add_library(scheduler_sm STATIC ${SCHEDULER_SM_SOURCES})
+
+# Include directories
+target_include_directories(scheduler_sm PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${E3SM_SCHEDULER_ASN_OUTPUT_DIR}
+)
+
+# Link with ASN.1 generated library
+target_link_libraries(scheduler_sm
+    e3sm_scheduler_asn
+)
+
+# Add MESSAGES subdirectory
+add_subdirectory(MESSAGES)
