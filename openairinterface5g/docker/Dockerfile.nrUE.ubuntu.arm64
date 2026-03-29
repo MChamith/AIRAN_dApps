@@ -27,9 +27,9 @@
 #---------------------------------------------------------------------
 
 ARG UBUNTU_IMAGE=ubuntu:noble
-FROM ran-base:latest AS nr-ue-base
+FROM ibs/ran-base:latest AS nr-ue-base
 
-FROM ran-build:latest AS nr-ue-build
+FROM ibs/ran-build:latest AS nr-ue-build
 
 
 #start from scratch for target executable

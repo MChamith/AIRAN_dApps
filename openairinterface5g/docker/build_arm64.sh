@@ -55,46 +55,46 @@ echo ""
 cd "${OAI_ROOT}"
 
 # Step 1: Build base image
-echo -e "${YELLOW}[1/5] Building ran-base:${TAG} (ARM64 cross-compile base)...${NC}"
+echo -e "${YELLOW}[1/5] Building ibs/ran-base:${TAG} (ARM64 cross-compile base)...${NC}"
 docker build \
     --target ran-base \
-    --tag ran-base:${TAG} \
+    --tag ibs/ran-base:${TAG} \
     --file docker/Dockerfile.base.ubuntu.arm64 \
     . || { echo -e "${RED}Failed to build ran-base${NC}"; exit 1; }
-echo -e "${GREEN}✓ ran-base:${TAG} built successfully${NC}"
+echo -e "${GREEN}✓ ibs/ran-base:${TAG} built successfully${NC}"
 echo ""
 
 # Step 2: Build with E2/E3 support
-echo -e "${YELLOW}[2/5] Building ran-build:${TAG} (with E2AP ${E2AP_VERSION}, KPM ${KPM_VERSION}, E3 agent)...${NC}"
+echo -e "${YELLOW}[2/5] Building ibs/ran-build:${TAG} (with E2AP ${E2AP_VERSION}, KPM ${KPM_VERSION}, E3 agent)...${NC}"
 docker build \
     --target ran-build \
-    --tag ran-build:${TAG} \
+    --tag ibs/ran-build:${TAG} \
     --build-arg E2AP_VERSION=${E2AP_VERSION} \
     --build-arg KPM_VERSION=${KPM_VERSION} \
     --build-arg BUILD_OPTION="${BUILD_OPTION}" \
     --file docker/Dockerfile.build.ubuntu.arm64 \
     . || { echo -e "${RED}Failed to build ran-build${NC}"; exit 1; }
-echo -e "${GREEN}✓ ran-build:${TAG} built successfully${NC}"
+echo -e "${GREEN}✓ ibs/ran-build:${TAG} built successfully${NC}"
 echo ""
 
 # Step 3: Build gNB image
-echo -e "${YELLOW}[3/5] Building oai-gnb:${TAG}-arm64 (gNB runtime)...${NC}"
+echo -e "${YELLOW}[3/5] Building ibs/oai-gnb:${TAG}-arm64 (gNB runtime)...${NC}"
 docker build \
     --target oai-gnb \
-    --tag oai-gnb:${TAG}-arm64 \
+    --tag ibs/oai-gnb:${TAG}-arm64 \
     --file docker/Dockerfile.gNB.ubuntu.arm64 \
     . || { echo -e "${RED}Failed to build oai-gnb${NC}"; exit 1; }
-echo -e "${GREEN}✓ oai-gnb:${TAG}-arm64 built successfully${NC}"
+echo -e "${GREEN}✓ ibs/oai-gnb:${TAG}-arm64 built successfully${NC}"
 echo ""
 
 # Step 4: Build nrUE image
-echo -e "${YELLOW}[4/5] Building oai-nr-ue:${TAG}-arm64 (nrUE runtime)...${NC}"
+echo -e "${YELLOW}[4/5] Building ibs/oai-nr-ue:${TAG}-arm64 (nrUE runtime)...${NC}"
 docker build \
     --target oai-nr-ue \
-    --tag oai-nr-ue:${TAG}-arm64 \
+    --tag ibs/oai-nr-ue:${TAG}-arm64 \
     --file docker/Dockerfile.nrUE.ubuntu.arm64 \
     . || { echo -e "${RED}Failed to build oai-nr-ue${NC}"; exit 1; }
-echo -e "${GREEN}✓ oai-nr-ue:${TAG}-arm64 built successfully${NC}"
+echo -e "${GREEN}✓ ibs/oai-nr-ue:${TAG}-arm64 built successfully${NC}"
 echo ""
 
 # Step 5: Summary
@@ -110,7 +110,7 @@ echo "  docker-compose -f docker/docker-compose.arm64.yml up"
 echo ""
 echo "Or run individually:"
 echo "  # gNB:"
-echo "  docker run -it --rm --privileged oai-gnb:${TAG}-arm64 <gnb-args>"
+echo "  docker run -it --rm --privileged ibs/oai-gnb:${TAG}-arm64 <gnb-args>"
 echo ""
 echo "  # nrUE:"
-echo "  docker run -it --rm --privileged oai-nr-ue:${TAG}-arm64 <ue-args>"
+echo "  docker run -it --rm --privileged ibs/oai-nr-ue:${TAG}-arm64 <ue-args>"

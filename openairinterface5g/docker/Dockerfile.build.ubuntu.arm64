@@ -26,7 +26,7 @@
 #
 #---------------------------------------------------------------------
 
-FROM ran-base:latest AS ran-build
+FROM ibs/ran-base:latest AS ran-build
 ARG BUILD_OPTION
 
 ARG E2AP_VERSION=E2AP_V3
@@ -46,19 +46,10 @@ RUN \
     cd cmake_targets && \
     mkdir -p log && \
     ./build_oai -c --ninja \
-      --eNB --gNB --RU --UE --nrUE \
-      --build-lib "telnetsrv enbscope uescope nrscope" \
-      -w USRP -t Ethernet -w BLADERF \
+      --gNB --nrUE \
       --build-e2 --cmake-opt -DKPM_VERSION=$KPM_VERSION --cmake-opt -DE2AP_VERSION=$E2AP_VERSION \
-      --cmake-opt -DOAI_VRTSIM_TAPS_CLIENT=ON \
-      --noavx512 \
-      --build-tool-opt -k10 \
-      --cmake-opt -DCMAKE_C_FLAGS="-Werror" --cmake-opt -DCMAKE_CXX_FLAGS="-Werror" $BUILD_OPTION && \
-    # Mainly to see if the sanitize option was perfectly executed
-    echo "---- ldd on executables ----" && \
-    ldd ran_build/build/*softmodem* ran_build/build/nr-cuup ran_build/build/oairu && \
-    echo "---- ldd on shared libraries ----" && \
-    ldd ran_build/build/*.so
+      --build-e3 \
+      -w SIMU
 
 ## Build FlexRIC for SM Models
 RUN \

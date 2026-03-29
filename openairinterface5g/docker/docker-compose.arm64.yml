@@ -28,7 +28,7 @@ version: '3.8'
 
 services:
   oai-gnb:
-    image: oai-gnb:latest-arm64
+    image: ibs/oai-gnb:latest-arm64
     container_name: rfsim-oai-gnb
     privileged: true
     network_mode: host
@@ -57,7 +57,7 @@ services:
     tty: true
 
   oai-nr-ue:
-    image: oai-nr-ue:latest-arm64
+    image: ibs/oai-nr-ue:latest-arm64
     container_name: rfsim-oai-nr-ue
     privileged: true
     network_mode: host
