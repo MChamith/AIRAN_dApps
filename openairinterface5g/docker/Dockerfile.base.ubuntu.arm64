@@ -56,7 +56,8 @@ RUN apt-get update && \
        wget \
        flatbuffers-compiler \
        libflatbuffers-dev \
-       libnanomsg-dev && \
+       libnanomsg-dev \
+       libzmq3-dev && \
     # --break-system-packages allows externally managed environment in pip 
     pip3 install --ignore-installed pyyaml --break-system-packages
 
