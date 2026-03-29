@@ -1,0 +1,97 @@
+################################################################################
+# Licensed to the OpenAirInterface (OAI) Software Alliance under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The OpenAirInterface Software Alliance licenses this file to You under
+# the OAI Public License, Version 1.1  (the "License"); you may not use this
+# file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.openairinterface.org/?page_id=698
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#-------------------------------------------------------------------------------
+# For more information about the OpenAirInterface (OAI) Software Alliance:
+#      contact@openairinterface.org
+################################################################################
+
+################################################################################
+# Docker Compose for OAI 5G gNB and nrUE on ARM64 with RF Simulator
+# Includes E2/E3 agent support
+################################################################################
+
+version: '3.8'
+
+services:
+  oai-gnb:
+    image: oai-gnb:latest-arm64
+    container_name: rfsim-oai-gnb
+    privileged: true
+    network_mode: host
+    environment:
+      TZ: Europe/Paris
+      USE_ADDITIONAL_OPTIONS: --sa --rfsim --log_config.global_log_options level,nocolor,time
+    volumes:
+      - ../targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.usrpb210.conf:/opt/oai-gnb/etc/gnb.conf:ro
+    command: >
+      /opt/oai-gnb/bin/nr-softmodem
+      -O /opt/oai-gnb/etc/gnb.conf
+      --gNBs.[0].min_rxtxtime 6
+      --sa
+      --rfsim
+      --rfsimulator.serveraddr server
+      --log_config.global_log_options level,nocolor,time
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep nr-softmodem || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    cap_add:
+      - NET_ADMIN
+      - SYS_NICE
+    stdin_open: true
+    tty: true
+
+  oai-nr-ue:
+    image: oai-nr-ue:latest-arm64
+    container_name: rfsim-oai-nr-ue
+    privileged: true
+    network_mode: host
+    environment:
+      TZ: Europe/Paris
+      USE_ADDITIONAL_OPTIONS: --rfsim --sa --log_config.global_log_options level,nocolor,time
+    volumes:
+      - ../targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.conf:/opt/oai-nr-ue/etc/ue.conf:ro
+    command: >
+      /opt/oai-nr-ue/bin/nr-uesoftmodem
+      --rfsim
+      --rfsimulator.serveraddr 10.201.1.100
+      -C 3619200000
+      -r 106
+      --numerology 1
+      --ssb 516
+      --sa
+      -O /opt/oai-nr-ue/etc/ue.conf
+      --log_config.global_log_options level,nocolor,time
+    depends_on:
+      oai-gnb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep nr-uesoftmodem || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    cap_add:
+      - NET_ADMIN
+      - SYS_NICE
+    stdin_open: true
+    tty: true
+
+networks:
+  default:
+    driver: bridge
+    name: oai-rfsim-net

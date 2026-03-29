@@ -1,0 +1,141 @@
+#/*
+# * Licensed to the OpenAirInterface (OAI) Software Alliance under one or more
+# * contributor license agreements.  See the NOTICE file distributed with
+# * this work for additional information regarding copyright ownership.
+# * The OpenAirInterface Software Alliance licenses this file to You under
+# * the OAI Public License, Version 1.1  (the "License"); you may not use this file
+# * except in compliance with the License.
+# * You may obtain a copy of the License at
+# *
+# *      http://www.openairinterface.org/?page_id=698
+# *
+# * Unless required by applicable law or agreed to in writing, software
+# * distributed under the License is distributed on an "AS IS" BASIS,
+# * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# * See the License for the specific language governing permissions and
+# * limitations under the License.
+# *-------------------------------------------------------------------------------
+# * For more information about the OpenAirInterface (OAI) Software Alliance:
+# *      contact@openairinterface.org
+# */
+#---------------------------------------------------------------------
+#
+# Dockerfile for the Open-Air-Interface gNB service
+#   Valid for Ubuntu 24.04 ARM64
+#   Includes E2/E3 agent support and RF simulator
+#
+#---------------------------------------------------------------------
+
+ARG UBUNTU_IMAGE=ubuntu:noble
+FROM ran-base:latest AS gnb-base
+
+FROM ran-build:latest AS gnb-build
+
+
+#start from scratch for target executable
+FROM ${UBUNTU_IMAGE} AS oai-gnb
+ARG BUILD_OPTION
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Europe/Paris
+
+RUN apt-get update && \
+    apt-get upgrade --yes && \
+    apt-get install --yes \
+        software-properties-common \
+        procps \
+        libsctp1 \
+        libboost-chrono1.83.0 \
+        libboost-date-time1.83.0 \
+        libboost-filesystem1.83.0 \
+        libboost-regex1.83.0 \
+        libboost-serialization1.83.0 \
+        libboost-thread1.83.0 \
+        libboost-system1.83.0 \
+        libboost-program-options1.83.0 \
+        tzdata \
+        libconfig9 \
+        openssl \
+        net-tools \
+        iperf \
+        iperf3 \
+        iproute2 \
+        iputils-ping \
+        gdb \
+        python3 \
+        python3-six \
+        python3-requests \
+        libusb-1.0-0 \
+        libyaml-cpp-dev \
+        libnanomsg5 && \
+# if the --sanitize option was used to build, additional packages are required
+    /bin/bash -c 'if [[ "$BUILD_OPTION" = "--sanitize" ]]; then DEBIAN_FRONTEND=noninteractive apt-get install --yes \
+        libasan8 \ 
+        libubsan1; fi' && \
+    apt-get clean -y && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt/oai-gnb/bin
+# Copy ARM64 binaries from build-cross directory
+COPY --from=gnb-build \
+    /oai-ran/cmake_targets/ran_build/build-cross/nr-softmodem ./
+COPY ./docker/scripts/gnb_entrypoint.sh ./entrypoint.sh
+COPY ./docker/scripts/check-prach-io.sh ./check-prach-io.sh
+
+# Copy ARM64 shared libraries from build-cross directory
+COPY --from=gnb-build \
+    /oai-ran/cmake_targets/ran_build/build-cross/liboai_eth_transpro.so \
+    /oai-ran/cmake_targets/ran_build/build-cross/librfsimulator.so \
+    /oai-ran/cmake_targets/ran_build/build-cross/liboai_usrpdevif.so \
+    /oai-ran/cmake_targets/ran_build/build-cross/libcoding.so \
+    /oai-ran/cmake_targets/ran_build/build-cross/libparams_libconfig.so \
+    /oai-ran/cmake_targets/ran_build/build-cross/libdfts.so \
+    /oai-ran/cmake_targets/ran_build/build-cross/libldpc*.so \
+    /oai-ran/cmake_targets/ran_build/build-cross/libtelnetsrv.so \
+    /oai-ran/cmake_targets/ran_build/build-cross/libtelnetsrv_ci.so \
+    /oai-ran/cmake_targets/ran_build/build-cross/libparams_yaml.so \
+    /oai-ran/cmake_targets/ran_build/build-cross/libtelnetsrv_bearer.so \
+    /oai-ran/cmake_targets/ran_build/build-cross/libtelnetsrv_5Gue.so \
+    /oai-ran/cmake_targets/ran_build/build-cross/libtelnetsrv_rrc.so \
+    /oai-ran/cmake_targets/ran_build/build-cross/libtelnetsrv_o1.so \
+    /oai-ran/cmake_targets/ran_build/build-cross/libvrtsim.so \
+    /usr/local/lib/
+
+# Now we are copying from builder-image the UHD files.
+COPY --from=gnb-base /usr/local/bin/uhd_find_devices /usr/local/bin
+COPY --from=gnb-base /usr/local/lib/libuhd.so.4.8.0 /usr/local/lib
+COPY --from=gnb-base /usr/local/lib/uhd/utils/uhd_images_downloader.py /opt/oai-gnb/bin
+
+## Copy E2 SM models (FlexRIC libraries)
+COPY --from=gnb-build /oai-ran/flexric-install/usr/local/lib/flexric /usr/local/lib/flexric
+
+# Copy Tini for proper signal handling
+COPY --from=gnb-base /tini /tini
+
+RUN /bin/bash -c "ln -s /usr/local/lib/liboai_usrpdevif.so /usr/local/lib/liboai_device.so" && \
+    ldconfig && \
+    echo "---- ldd on nr-softmodem (ARM64) ----" && \
+    ldd /opt/oai-gnb/bin/nr-softmodem && \
+    echo "---- ldd on shared libraries (ARM64) ----" && \
+    ldd /usr/local/lib/liboai_eth_transpro.so \
+        /usr/local/lib/librfsimulator.so \
+        /usr/local/lib/liboai_usrpdevif.so \
+        /usr/local/lib/libcoding.so \
+        /usr/local/lib/libparams_libconfig.so \
+        /usr/local/lib/libdfts.so \
+        /usr/local/lib/libldpc*.so \
+        /usr/local/lib/libtelnetsrv.so \
+        /usr/local/lib/libtelnetsrv_ci.so \
+        /usr/local/lib/libparams_yaml.so \
+        /usr/local/lib/libtelnetsrv_bearer.so \
+        /usr/local/lib/libtelnetsrv_5Gue.so \
+        /usr/local/lib/libtelnetsrv_rrc.so \
+        /usr/local/lib/libtelnetsrv_o1.so \
+        /usr/local/lib/libuhd.so.4.8.0 \
+        /usr/local/lib/libvrtsim.so
+
+WORKDIR /opt/oai-gnb
+
+# Copy for the basic 5GS deployment with oai-cn5g-fed components
+#COPY --from=gnb-base /tini /tini
+ENTRYPOINT ["/tini", "-v", "--", "/opt/oai-gnb/bin/entrypoint.sh"]
+CMD ["/opt/oai-gnb/bin/nr-softmodem", "-O", "/opt/oai-gnb/etc/gnb.conf"]
