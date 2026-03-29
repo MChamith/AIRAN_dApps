@@ -21,63 +21,56 @@
 #---------------------------------------------------------------------
 #
 # Dockerfile for the Open-Air-Interface BUILD service
-#   Valid for Ubuntu 24.04 to cross-compile for ARM64
+#   Valid for Ubuntu 24.04 ARM64 (native build)
 #   Includes support for E2/E3 agents and RF simulator
 #
 #---------------------------------------------------------------------
 
-# Very important, the noble image shall not be using mirrors. A lot of them do NOT support ARM64.
 ARG UBUNTU_IMAGE=ubuntu:noble
 FROM ${UBUNTU_IMAGE} AS ran-base
+
+ARG NEEDED_GIT_PROXY
+ARG TARGETARCH=arm64
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Europe/Paris
-# Specifying a working version of SIMDE for ARM:
-ENV SIMDE_VERSION=389f360a66d4a3bec62b7d71ad8be877487809ba
+ENV BUILD_UHD_FROM_SOURCE=True
+ENV UHD_VERSION=4.8.0.0
 
 #install developers pkg/repo
 RUN apt-get update && \
     apt-get upgrade --yes && \
-    #enabling arm64 architecture
-    dpkg --add-architecture arm64 && \
-    echo "deb [arch=arm64] http://ports.ubuntu.com/ noble main restricted\n" \
-         "deb [arch=arm64] http://ports.ubuntu.com/ noble-updates main restricted\n" \
-         "deb [arch=arm64] http://ports.ubuntu.com/ noble universe\n" \
-         "deb [arch=arm64] http://ports.ubuntu.com/ noble-updates universe\n" \
-         "deb [arch=arm64] http://ports.ubuntu.com/ noble multiverse\n" \
-         "deb [arch=arm64] http://ports.ubuntu.com/ noble-updates multiverse\n" \
-         "deb [arch=arm64] http://ports.ubuntu.com/ noble-backports main restricted universe multiverse" \
-         | tee /etc/apt/sources.list.d/arm-cross-compile-sources.list && \
-    cp /etc/apt/sources.list "/etc/apt/sources.list.`date`.backup" && \
-    sed -i -E "s/(deb)\ (http:.+)/\1\ [arch=amd64]\ \2/" /etc/apt/sources.list && \
-    sed -i '/^Components:/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources && \
-    apt-get update && \
-    apt-get upgrade --yes && \
     apt-get install --yes \
-      build-essential \
-      psmisc \
-      git \
-      tzdata \
-      xxd \
-      # ARM64 packages
-      libreadline-dev:arm64 \
-      libgnutls28-dev:arm64 \
-      libconfig-dev:arm64 \
-      libsctp-dev:arm64 \
-      libssl-dev:arm64 \
-      libtool:arm64 \
-      zlib1g-dev:arm64 \
-      libyaml-cpp-dev:arm64 \
-      # cross build libs and compilers
-      libc6-dev-i386 \
-      gcc-aarch64-linux-gnu \
-      g++-aarch64-linux-gnu && \
-    apt-get clean
+       #gcc needed for build_oai
+       build-essential \
+       ccache \
+       psmisc \
+       git \
+       xxd \
+       libpcre2-dev \
+       python3-dev \
+       bison \
+       flex \
+       m4 \
+       # python3-pip for conf template generation
+       python3-pip \
+       wget \
+       flatbuffers-compiler \
+       libflatbuffers-dev \
+       libnanomsg-dev && \
+    # --break-system-packages allows externally managed environment in pip 
+    pip3 install --ignore-installed pyyaml --break-system-packages
 
 # Add "Tini - A tiny but valid init for containers", https://github.com/krallin/tini
 # it will be copied into target containers, to print exit numbers and handle signals properly
 ENV TINI_VERSION=v0.19.0
-ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
-RUN chmod +x /tini
+RUN wget https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini-${TARGETARCH} -O /tini && chmod +x /tini
+
+ENV YQ_VERSION=v4.2.0
+RUN wget https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_${TARGETARCH} -O /usr/local/bin/yq &&\
+    chmod +x /usr/local/bin/yq
+
+# In some network environments, GIT proxy is required
+RUN /bin/bash -c "if [[ -v NEEDED_GIT_PROXY ]]; then git config --global http.proxy $NEEDED_GIT_PROXY; fi"
 
 # Copying only the needed files to create ran-base
 WORKDIR /oai-ran/cmake_targets/tools
@@ -92,8 +85,7 @@ WORKDIR /oai-ran
 COPY oaienv .
 
 #run build_oai -I to get the builder image
-RUN /bin/sh oaienv && \
+RUN /bin/sh oaienv && \ 
     cd cmake_targets && \
     mkdir -p log && \
-    ./build_oai -I && \
-    apt-get clean
+    ./build_oai -I -w USRP -w BLADERF --install-optional-packages

@@ -36,49 +36,38 @@ RUN rm -Rf /oai-ran
 WORKDIR /oai-ran
 COPY . .
 
-# Build all targets with cross-compilation for ARM64
-# Two-stage build: native code generators first, then cross-compile for ARM
-RUN /bin/sh oaienv && \
+# build all targets so final targets can be created afterwards
+RUN \
+   # Mount CCache cache directory
+   --mount=type=cache,target=/root/.cache/ccache/ \
+   # Mount CPM package cache
+   --mount=type=cache,target=/root/.cache/cpm/ \
+    /bin/sh oaienv && \
     cd cmake_targets && \
-    mkdir -p log ran_build/build ran_build/build-cross && \
-    # Stage 1: Build native code generators on x86 host
-    cd ran_build/build && \
-    cmake ../../.. -GNinja && \
-    ninja ldpc_generators generate_T && \
-    # Stage 2: Cross-compile for ARM64 with E2/E3 support
-    cd ../build-cross/ && \
-    apt install -y libyaml-cpp-dev:arm64 && \
-    cmake ../../.. -GNinja \
-      -DCMAKE_TOOLCHAIN_FILE=../../../cmake_targets/cross-arm.cmake \
-      -DNATIVE_DIR=../build \
-      -DENABLE_TELNETSRV=ON \
-      -DE2_AGENT=ON \
-      -DE2AP_VERSION=$E2AP_VERSION \
-      -DKPM_VERSION=$KPM_VERSION \
-      -DE3_AGENT=ON \
-      -DCMAKE_C_FLAGS="-Werror" \
-      -DCMAKE_CXX_FLAGS="-Werror" && \
-    # Build all necessary targets including RF simulator
-    ninja -k10 \
-      dlsim ulsim ldpctest polartest smallblocktest \
-      nr_pbchsim nr_dlschsim nr_ulschsim nr_dlsim nr_ulsim nr_pucchsim nr_prachsim \
-      lte-softmodem nr-softmodem nr-cuup oairu \
-      lte-uesoftmodem nr-uesoftmodem \
-      params_libconfig coding rfsimulator telnetsrv && \
-    # Verify build results
-    echo "---- ldd on ARM64 executables ----" && \
-    file nr-softmodem nr-uesoftmodem && \
-    echo "---- ldd on ARM64 shared libraries ----" && \
-    file librfsimulator.so libcoding.so
+    mkdir -p log && \
+    ./build_oai -c --ninja \
+      --eNB --gNB --RU --UE --nrUE \
+      --build-lib "telnetsrv enbscope uescope nrscope" \
+      -w USRP -t Ethernet -w BLADERF \
+      --build-e2 --cmake-opt -DKPM_VERSION=$KPM_VERSION --cmake-opt -DE2AP_VERSION=$E2AP_VERSION \
+      --cmake-opt -DOAI_VRTSIM_TAPS_CLIENT=ON \
+      --noavx512 \
+      --build-tool-opt -k10 \
+      --cmake-opt -DCMAKE_C_FLAGS="-Werror" --cmake-opt -DCMAKE_CXX_FLAGS="-Werror" $BUILD_OPTION && \
+    # Mainly to see if the sanitize option was perfectly executed
+    echo "---- ldd on executables ----" && \
+    ldd ran_build/build/*softmodem* ran_build/build/nr-cuup ran_build/build/oairu && \
+    echo "---- ldd on shared libraries ----" && \
+    ldd ran_build/build/*.so
 
-## Build FlexRIC for E2 Service Models (cross-compiled for ARM64)
-RUN mkdir -p openair2/E2AP/flexric/build && \
+## Build FlexRIC for SM Models
+RUN \
+    # Mount CCache cache directory
+    --mount=type=cache,target=/root/.cache/ccache/ \
+    mkdir -p openair2/E2AP/flexric/build && \
     cd openair2/E2AP/flexric/build && \
     cmake -GNinja -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_TOOLCHAIN_FILE=../../../../cmake_targets/cross-arm.cmake \
           -DKPM_VERSION=$KPM_VERSION \
           -DE2AP_VERSION=$E2AP_VERSION .. && \
     ninja && \
-    DESTDIR=/oai-ran/flexric-install ninja install && \
-    echo "---- FlexRIC Service Models built for ARM64 ----" && \
-    find /oai-ran/flexric-install -name "*.so"
+    ninja install
