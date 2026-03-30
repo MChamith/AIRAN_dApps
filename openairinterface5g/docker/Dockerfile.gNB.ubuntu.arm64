@@ -66,7 +66,8 @@ RUN apt-get update && \
         python3-requests \
         libusb-1.0-0 \
         libyaml-cpp-dev \
-        libnanomsg5 && \
+        libnanomsg5 \
+        libzmq5 && \
 # if the --sanitize option was used to build, additional packages are required
     /bin/bash -c 'if [[ "$BUILD_OPTION" = "--sanitize" ]]; then DEBIAN_FRONTEND=noninteractive apt-get install --yes \
         libasan8 \ 
