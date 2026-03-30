@@ -92,6 +92,9 @@ COPY --from=nr-ue-build \
     /oai-ran/cmake_targets/ran_build/build/libldpc*.so \
     /usr/local/lib/
 
+# Copy T tracer files
+COPY --from=nr-ue-build /oai-ran/common/utils/T/T_messages.txt /oai-ran/common/utils/T/T_messages.txt
+
 # Copy Tini for proper signal handling
 COPY --from=nr-ue-base /tini /tini
 

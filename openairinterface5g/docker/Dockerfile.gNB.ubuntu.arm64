@@ -92,6 +92,9 @@ COPY --from=gnb-build \
 ## Copy E2 SM models
 COPY --from=gnb-build /usr/local/lib/flexric /usr/local/lib/flexric
 
+# Copy T tracer files
+COPY --from=gnb-build /oai-ran/common/utils/T/T_messages.txt /oai-ran/common/utils/T/T_messages.txt
+
 # Copy Tini for proper signal handling
 COPY --from=gnb-base /tini /tini
 
