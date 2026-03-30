@@ -32,11 +32,14 @@ services:
     container_name: rfsim-oai-gnb
     privileged: true
     network_mode: host
+    group_add:
+      - dapp
     environment:
       TZ: Europe/Paris
       USE_ADDITIONAL_OPTIONS: --gNBs.[0].min_rxtxtime 6 --T_stdout 2 --T_nowait --rfsim --rfsimulator.[0].serveraddr server -E --log_config.global_log_options level,nocolor,time
     volumes:
       - ../targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.usrpb210.conf:/opt/oai-gnb/etc/gnb.conf:ro
+      - /tmp/dapps:/tmp/dapps
     healthcheck:
       test: ["CMD-SHELL", "pgrep nr-softmodem || exit 1"]
       interval: 10s
@@ -53,11 +56,14 @@ services:
     container_name: rfsim-oai-nr-ue
     privileged: true
     network_mode: host
+    group_add:
+      - dapp
     environment:
       TZ: Europe/Paris
       USE_ADDITIONAL_OPTIONS: -E --rfsim --rfsimulator.[0].serveraddr 10.201.1.100 -C 3619200000 -r 106 --numerology 1 --ssb 516 --log_config.global_log_options level,nocolor,time
     volumes:
       - ../targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.conf:/opt/oai-nr-ue/etc/ue.conf:ro
+      - /tmp/dapps:/tmp/dapps
     depends_on:
       oai-gnb:
         condition: service_healthy

@@ -75,6 +75,12 @@ RUN apt-get update && \
     apt-get clean -y && \
     rm -rf /var/lib/apt/lists/*
 
+# Create dapp group for E3 agent IPC communication
+RUN groupadd -r dapp && \
+    mkdir -p /tmp/dapps && \
+    chgrp dapp /tmp/dapps && \
+    chmod 2777 /tmp/dapps
+
 WORKDIR /opt/oai-gnb/bin
 COPY --from=gnb-build \
     /oai-ran/cmake_targets/ran_build/build/nr-softmodem ./
