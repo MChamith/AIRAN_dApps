@@ -35,7 +35,7 @@ services:
     group_add:
       - dapp
     environment:
-      TZ: Europe/Paris
+      TZ: Europe/Helsinki
       USE_ADDITIONAL_OPTIONS: --gNBs.[0].min_rxtxtime 6 --T_stdout 2 --T_nowait --rfsim --rfsimulator.[0].serveraddr server -E --log_config.global_log_options level,nocolor,time
     volumes:
       - ../targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.usrpb210.conf:/opt/oai-gnb/etc/gnb.conf:ro
@@ -59,8 +59,92 @@ services:
     group_add:
       - dapp
     environment:
-      TZ: Europe/Paris
+      TZ: Europe/Helsinki
       USE_ADDITIONAL_OPTIONS: -E --rfsim --rfsimulator.serveraddr 127.0.0.1 -C 3619200000 -r 106 --numerology 1 --ssb 516 --log_config.global_log_options level,nocolor,time
+    volumes:
+      - ../targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.conf:/opt/oai-nr-ue/etc/nr-ue.conf:ro
+      - ../targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu.conf:/opt/oai-nr-ue/etc/channelmod_rfsimu.conf:ro
+      - /tmp/dapps:/tmp/dapps
+    depends_on:
+      oai-gnb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep nr-uesoftmodem || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    cap_add:
+      - NET_ADMIN
+      - SYS_NICE
+    stdin_open: true
+    tty: true
+
+  oai-nr-ue2:
+    image: ibs/oai-nr-ue:latest-arm64
+    container_name: rfsim-oai-nr-ue2
+    privileged: true
+    network_mode: host
+    group_add:
+      - dapp
+    environment:
+      TZ: Europe/Helsinki
+      USE_ADDITIONAL_OPTIONS: -E --rfsim --rfsimulator.serveraddr 127.0.0.1 -C 3619200000 -r 106 --numerology 1 --ssb 516 --uicc0.imsi 001010000000002 --log_config.global_log_options level,nocolor,time
+    volumes:
+      - ../targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.conf:/opt/oai-nr-ue/etc/nr-ue.conf:ro
+      - ../targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu.conf:/opt/oai-nr-ue/etc/channelmod_rfsimu.conf:ro
+      - /tmp/dapps:/tmp/dapps
+    depends_on:
+      oai-gnb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep nr-uesoftmodem || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    cap_add:
+      - NET_ADMIN
+      - SYS_NICE
+    stdin_open: true
+    tty: true
+
+  oai-nr-ue3:
+    image: ibs/oai-nr-ue:latest-arm64
+    container_name: rfsim-oai-nr-ue3
+    privileged: true
+    network_mode: host
+    group_add:
+      - dapp
+    environment:
+      TZ: Europe/Helsinki
+      USE_ADDITIONAL_OPTIONS: -E --rfsim --rfsimulator.serveraddr 127.0.0.1 -C 3619200000 -r 106 --numerology 1 --ssb 516 --uicc0.imsi 001010000000003 --log_config.global_log_options level,nocolor,time
+    volumes:
+      - ../targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.conf:/opt/oai-nr-ue/etc/nr-ue.conf:ro
+      - ../targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu.conf:/opt/oai-nr-ue/etc/channelmod_rfsimu.conf:ro
+      - /tmp/dapps:/tmp/dapps
+    depends_on:
+      oai-gnb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep nr-uesoftmodem || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    cap_add:
+      - NET_ADMIN
+      - SYS_NICE
+    stdin_open: true
+    tty: true
+
+  oai-nr-ue4:
+    image: ibs/oai-nr-ue:latest-arm64
+    container_name: rfsim-oai-nr-ue4
+    privileged: true
+    network_mode: host
+    group_add:
+      - dapp
+    environment:
+      TZ: Europe/Helsinki
+      USE_ADDITIONAL_OPTIONS: -E --rfsim --rfsimulator.serveraddr 127.0.0.1 -C 3619200000 -r 106 --numerology 1 --ssb 516 --uicc0.imsi 001010000000004 --log_config.global_log_options level,nocolor,time
     volumes:
       - ../targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.conf:/opt/oai-nr-ue/etc/nr-ue.conf:ro
       - ../targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu.conf:/opt/oai-nr-ue/etc/channelmod_rfsimu.conf:ro
