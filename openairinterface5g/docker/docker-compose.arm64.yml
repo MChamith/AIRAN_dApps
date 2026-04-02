@@ -31,7 +31,8 @@ services:
     image: ibs/oai-gnb:latest-arm64
     container_name: rfsim-oai-gnb
     privileged: true
-    network_mode: host
+    ports:
+      - "4043:4043"  # RF Simulator TCP port
     group_add:
       - dapp
     environment:
