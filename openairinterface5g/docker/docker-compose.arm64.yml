@@ -54,7 +54,7 @@ services:
     networks:
       oai-rfsim-net:
       public_net:
-        ipv4_address: 192.168.70.129
+        ipv4_address: 192.168.70.140
 
   oai-nr-ue:
     image: ibs/oai-nr-ue:latest-arm64
@@ -82,6 +82,8 @@ services:
       - SYS_NICE
     stdin_open: true
     tty: true
+    networks:
+      - oai-rfsim-net
 
   oai-nr-ue2:
     image: ibs/oai-nr-ue:latest-arm64
@@ -109,6 +111,8 @@ services:
       - SYS_NICE
     stdin_open: true
     tty: true
+    networks:
+      - oai-rfsim-net
 
   oai-nr-ue3:
     image: ibs/oai-nr-ue:latest-arm64
@@ -136,6 +140,8 @@ services:
       - SYS_NICE
     stdin_open: true
     tty: true
+    networks:
+      - oai-rfsim-net
 
   oai-nr-ue4:
     image: ibs/oai-nr-ue:latest-arm64
@@ -163,6 +169,8 @@ services:
       - SYS_NICE
     stdin_open: true
     tty: true
+    networks:
+      - oai-rfsim-net
 
 networks:
   oai-rfsim-net:
