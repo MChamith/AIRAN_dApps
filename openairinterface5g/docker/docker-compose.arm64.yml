@@ -55,12 +55,11 @@ services:
     image: ibs/oai-nr-ue:latest-arm64
     container_name: rfsim-oai-nr-ue
     privileged: true
-    network_mode: host
     group_add:
       - dapp
     environment:
       TZ: Europe/Helsinki
-      USE_ADDITIONAL_OPTIONS: -E --rfsim --rfsimulator.serveraddr 127.0.0.1 -C 3619200000 -r 106 --numerology 1 --ssb 516 --log_config.global_log_options level,nocolor,time
+      USE_ADDITIONAL_OPTIONS: -E --rfsim --rfsimulator.serveraddr rfsim-oai-gnb -C 3619200000 -r 106 --numerology 1 --ssb 516 --uicc0.imsi 001010000000001 --log_config.global_log_options level,nocolor,time
     volumes:
       - ../targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.conf:/opt/oai-nr-ue/etc/nr-ue.conf:ro
       - ../targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu.conf:/opt/oai-nr-ue/etc/channelmod_rfsimu.conf:ro
@@ -83,12 +82,11 @@ services:
     image: ibs/oai-nr-ue:latest-arm64
     container_name: rfsim-oai-nr-ue2
     privileged: true
-    network_mode: host
     group_add:
       - dapp
     environment:
       TZ: Europe/Helsinki
-      USE_ADDITIONAL_OPTIONS: -E --rfsim --rfsimulator.serveraddr 127.0.0.1 -C 3619200000 -r 106 --numerology 1 --ssb 516 --uicc0.imsi 001010000000002 --log_config.global_log_options level,nocolor,time
+      USE_ADDITIONAL_OPTIONS: -E --rfsim --rfsimulator.serveraddr rfsim-oai-gnb -C 3619200000 -r 106 --numerology 1 --ssb 516 --uicc0.imsi 001010000000002 --log_config.global_log_options level,nocolor,time
     volumes:
       - ../targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.conf:/opt/oai-nr-ue/etc/nr-ue.conf:ro
       - ../targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu.conf:/opt/oai-nr-ue/etc/channelmod_rfsimu.conf:ro
@@ -111,12 +109,11 @@ services:
     image: ibs/oai-nr-ue:latest-arm64
     container_name: rfsim-oai-nr-ue3
     privileged: true
-    network_mode: host
     group_add:
       - dapp
     environment:
       TZ: Europe/Helsinki
-      USE_ADDITIONAL_OPTIONS: -E --rfsim --rfsimulator.serveraddr 127.0.0.1 -C 3619200000 -r 106 --numerology 1 --ssb 516 --uicc0.imsi 001010000000003 --log_config.global_log_options level,nocolor,time
+      USE_ADDITIONAL_OPTIONS: -E --rfsim --rfsimulator.serveraddr rfsim-oai-gnb -C 3619200000 -r 106 --numerology 1 --ssb 516 --uicc0.imsi 001010000000003 --log_config.global_log_options level,nocolor,time
     volumes:
       - ../targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.conf:/opt/oai-nr-ue/etc/nr-ue.conf:ro
       - ../targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu.conf:/opt/oai-nr-ue/etc/channelmod_rfsimu.conf:ro
@@ -139,12 +136,11 @@ services:
     image: ibs/oai-nr-ue:latest-arm64
     container_name: rfsim-oai-nr-ue4
     privileged: true
-    network_mode: host
     group_add:
       - dapp
     environment:
       TZ: Europe/Helsinki
-      USE_ADDITIONAL_OPTIONS: -E --rfsim --rfsimulator.serveraddr 127.0.0.1 -C 3619200000 -r 106 --numerology 1 --ssb 516 --uicc0.imsi 001010000000004 --log_config.global_log_options level,nocolor,time
+      USE_ADDITIONAL_OPTIONS: -E --rfsim --rfsimulator.serveraddr rfsim-oai-gnb -C 3619200000 -r 106 --numerology 1 --ssb 516 --uicc0.imsi 001010000000004 --log_config.global_log_options level,nocolor,time
     volumes:
       - ../targets/PROJECTS/GENERIC-NR-5GC/CONF/ue.conf:/opt/oai-nr-ue/etc/nr-ue.conf:ro
       - ../targets/PROJECTS/GENERIC-NR-5GC/CONF/channelmod_rfsimu.conf:/opt/oai-nr-ue/etc/channelmod_rfsimu.conf:ro
