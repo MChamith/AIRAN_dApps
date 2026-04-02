@@ -54,7 +54,7 @@ services:
     networks:
       oai-rfsim-net:
       public_net:
-        ipv4_address: 192.168.70.140
+        ipv4_address: 192.168.70.129
 
   oai-nr-ue:
     image: ibs/oai-nr-ue:latest-arm64
