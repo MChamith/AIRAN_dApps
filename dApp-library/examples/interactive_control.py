@@ -18,6 +18,7 @@ import sys
 import time
 import json
 import os
+import argparse
 from openai import OpenAI
 from dotenv import load_dotenv
 
@@ -62,8 +63,10 @@ COMMANDS = {
     'round': (0, 'Round Robin'),
 }
 
-def print_header():
+def print_header(llm_config=None):
     """Print welcome header"""
+    llm_backend = "LLM" if llm_config is None else ("OpenAI ChatGPT" if llm_config['type'] == 'openai' else "NVIDIA NIM")
+    
     print("\n" + "="*70)
     print("  📡 Scheduler Policy Control - Interactive Terminal")
     print("="*70)
@@ -73,34 +76,115 @@ def print_header():
     print("  get                     → Show current policy")
     print("  help                    → Show this help")
     print("  exit, quit              → Exit")
-    print("\nNatural Language (with ChatGPT):")
+    print(f"\nNatural Language (with {llm_backend}):")
     print("  change: <scenario>      → Intent-based policy selection")
     print("  Example: change: many users need internet access")
+    if llm_config:
+        print("\nCLI Options:")
+        print("  --model {openai,nim}    → Select LLM backend (default: openai)")
+        print("  --modelname <name>      → Specify model name")
+        print("  --nim-url <url>         → Custom NIM endpoint URL")
     print("="*70 + "\n")
 
-def llm_parse_intent(scenario):
-    """Use ChatGPT to parse natural language intent and return policy number.
+def build_llm_config(args):
+    """Build LLM configuration from CLI args and environment variables.
+    
+    Args:
+        args: Parsed command line arguments
+        
+    Returns:
+        dict: Configuration with 'type', 'base_url', 'model', 'api_key'
+    """
+    config = {'type': args.model}
+    
+    if args.model == 'openai':
+        # OpenAI configuration
+        config['base_url'] = 'https://api.openai.com/v1'
+        config['model'] = args.modelname if args.modelname else 'gpt-4'
+        config['api_key'] = os.getenv('OPENAI_API_KEY', '')
+    else:  # nim
+        # NIM configuration with environment variable fallbacks
+        if args.nim_url:
+            config['base_url'] = args.nim_url
+        else:
+            config['base_url'] = os.getenv('NIM_BASE_URL', 'http://localhost:8000/v1')
+        
+        if args.modelname:
+            config['model'] = args.modelname
+        else:
+            config['model'] = os.getenv('NIM_MODEL', 'meta/llama-3.1-8b-instruct')
+        
+        # For NIM, API key is optional (check NGC_API_KEY or NIM_API_KEY)
+        config['api_key'] = os.getenv('NGC_API_KEY', os.getenv('NIM_API_KEY', 'not-needed'))
+    
+    return config
+
+def check_nim_connection(base_url):
+    """Check if NIM endpoint is reachable.
+    
+    Args:
+        base_url: The NIM base URL to check
+        
+    Returns:
+        bool: True if connection successful, False otherwise
+    """
+    print("Checking connection to NIM endpoint...", end=" ")
+    try:
+        # Try to get models endpoint
+        models_url = base_url.rstrip('/v1') + '/v1/models'
+        response = requests.get(models_url, timeout=5)
+        
+        if response.status_code == 200:
+            print("✓ Connected")
+            return True
+        else:
+            # Some NIM deployments might not have /models endpoint, try health check
+            health_url = base_url.rstrip('/v1') + '/health'
+            health_response = requests.get(health_url, timeout=5)
+            if health_response.status_code == 200:
+                print("✓ Connected")
+                return True
+            print("❌ Failed")
+            return False
+    except requests.exceptions.RequestException as e:
+        print("❌ Failed")
+        print(f"\n⚠️  Cannot connect to NIM endpoint: {base_url}")
+        print("   Please make sure NIM container is running:")
+        print("   $ docker run --gpus=all -e NGC_API_KEY=$NGC_API_KEY \\")
+        print("       -v \"$LOCAL_NIM_CACHE:/opt/nim/.cache\" -p 8000:8000 \\")
+        print("       nvcr.io/nim/meta/llama-3.1-8b-instruct:2.0.1")
+        print(f"\n   Error: {e}\n")
+        return False
+
+def llm_parse_intent(scenario, llm_config):
+    """Use LLM to parse natural language intent and return policy number.
     
     Args:
         scenario: Natural language description of the network scenario
+        llm_config: LLM configuration dict with 'type', 'base_url', 'model', 'api_key'
         
     Returns:
         tuple: (policy_number, policy_name, reasoning) or (None, None, error_msg)
     """
     try:
-        # Check for API key
-        api_key = os.getenv('OPENAI_API_KEY')
-        if not api_key or api_key == 'your_openai_api_key_here':
+        # Check for API key (required for OpenAI, optional for NIM)
+        api_key = llm_config['api_key']
+        if llm_config['type'] == 'openai' and (not api_key or api_key == 'your_openai_api_key_here'):
             return (None, None, "OpenAI API key not configured. Please set OPENAI_API_KEY in .env file")
         
-        # Initialize OpenAI client
-        client = OpenAI(api_key=api_key)
+        # Initialize OpenAI client with custom base_url for NIM support
+        client = OpenAI(
+            api_key=api_key,
+            base_url=llm_config['base_url']
+        )
         
-        print("🤖 Analyzing scenario with ChatGPT...", end=" ")
+        model_name = llm_config['model']
+        backend = "OpenAI ChatGPT" if llm_config['type'] == 'openai' else "NIM"
+        print(f"🤖 Analyzing scenario with {backend} ({model_name})...", end=" ")
         
         # Make API call
         response = client.chat.completions.create(
-            model="gpt-4",
+            model=model_name,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": scenario}
@@ -136,10 +220,11 @@ def llm_parse_intent(scenario):
             return (policy, policy_name, reasoning)
             
         except json.JSONDecodeError as e:
-            return (None, None, f"Failed to parse ChatGPT response: {content}")
+            return (None, None, f"Failed to parse LLM response: {content}")
             
     except Exception as e:
-        return (None, None, f"ChatGPT API error: {str(e)}")
+        backend = llm_config.get('type', 'LLM').upper()
+        return (None, None, f"{backend} API error: {str(e)}")
 
 def get_current_policy():
     """Get and display current policy"""
@@ -172,7 +257,7 @@ def set_policy(policy, policy_name):
         print(f"   Details: {e}")
         return False
 
-def parse_input(user_input):
+def parse_input(user_input, llm_config):
     """Parse user input and execute command"""
     user_input_stripped = user_input.strip()
     user_input_lower = user_input_stripped.lower()
@@ -187,7 +272,7 @@ def parse_input(user_input):
     
     # Help command
     if user_input_lower in ['help', '?', 'h']:
-        print_header()
+        print_header(llm_config)
         return True
     
     # Get command
@@ -205,7 +290,7 @@ def parse_input(user_input):
             return True
         
         # Use LLM to parse intent
-        policy, policy_name, reasoning = llm_parse_intent(scenario)
+        policy, policy_name, reasoning = llm_parse_intent(scenario, llm_config)
         
         if policy is None:
             print(f"❌ {reasoning}")
@@ -245,7 +330,60 @@ def check_dapp_connection():
 
 def main():
     """Main interactive loop"""
-    print_header()
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(
+        description='Interactive scheduler policy control with LLM-based intent recognition',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples:
+  # Use OpenAI ChatGPT (default)
+  python interactive_control.py --model openai
+  
+  # Use NVIDIA NIM with default settings
+  python interactive_control.py --model nim
+  
+  # Use NIM with custom model
+  python interactive_control.py --model nim --modelname meta/llama-3.1-70b-instruct
+  
+  # Use NIM with custom endpoint
+  python interactive_control.py --model nim --nim-url http://192.168.1.100:8000/v1
+        """
+    )
+    parser.add_argument(
+        '--model',
+        choices=['openai', 'nim'],
+        default='openai',
+        help='LLM backend to use (default: openai)'
+    )
+    parser.add_argument(
+        '--modelname',
+        type=str,
+        help='Model name (e.g., gpt-4, meta/llama-3.1-8b-instruct)'
+    )
+    parser.add_argument(
+        '--nim-url',
+        type=str,
+        help='Custom NIM endpoint URL (default: http://localhost:8000/v1)'
+    )
+    
+    args = parser.parse_args()
+    
+    # Build LLM configuration
+    llm_config = build_llm_config(args)
+    
+    print_header(llm_config)
+    
+    # Show LLM configuration
+    print("LLM Configuration:")
+    print(f"  Backend: {llm_config['type'].upper()}")
+    print(f"  Model: {llm_config['model']}")
+    print(f"  Endpoint: {llm_config['base_url']}")
+    print()
+    
+    # Check NIM connection if using NIM
+    if llm_config['type'] == 'nim':
+        if not check_nim_connection(llm_config['base_url']):
+            print("\n⚠️  Warning: NIM endpoint not reachable. Natural language commands may fail.")
+            print("   You can still use keyword commands (pf, rr, get, etc.)\n")
     
     # Check dApp connection
     if not check_dapp_connection():
@@ -262,7 +400,7 @@ def main():
             try:
                 user_input = input("📡 > ").strip()
                 
-                if not parse_input(user_input):
+                if not parse_input(user_input, llm_config):
                     break
                     
             except EOFError:
