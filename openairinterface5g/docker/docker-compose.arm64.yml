@@ -51,6 +51,10 @@ services:
       - SYS_NICE
     stdin_open: true
     tty: true
+    networks:
+      oai-rfsim-net:
+      public_net:
+        ipv4_address: 192.168.70.140
 
   oai-nr-ue:
     image: ibs/oai-nr-ue:latest-arm64
@@ -161,6 +165,9 @@ services:
     tty: true
 
 networks:
-  default:
+  oai-rfsim-net:
     driver: bridge
     name: oai-rfsim-net
+  public_net:
+    external: true
+    name: oai-cn5g-public-net
