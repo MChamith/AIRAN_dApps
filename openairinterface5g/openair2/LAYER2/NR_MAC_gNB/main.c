@@ -328,7 +328,7 @@ void mac_top_init_gNB(ngran_node_t node_type,
         RC.nrmac[i]->pre_processor_dl = nr_init_dlsch_preprocessor(0);
         RC.nrmac[i]->pre_processor_ul = nr_init_ulsch_preprocessor(0);
         RC.nrmac[i]->dl_beam_alloc = nr_dl_beam_alloc_default;
-        RC.nrmac[i]->dl_sched_policy = nr_dl_round_robin;
+        RC.nrmac[i]->dl_sched_policy = nr_dl_proportional_fair;
         
         // Initialize round-robin state for all beams
         for (int b = 0; b < MAX_NUM_BEAM_PERIODS; b++) {
